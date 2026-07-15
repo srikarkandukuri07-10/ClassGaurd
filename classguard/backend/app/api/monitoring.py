@@ -21,17 +21,17 @@ async def start_monitoring(
 ):
     students = await db.execute(select(Student))
     for s in students.scalars().all():
+        s.monitoring_enabled = True
+        s.monitoring_paused = False
         if s.connection_status == "connected":
-            s.monitoring_enabled = True
-            s.monitoring_paused = False
             if s.current_status == "offline":
                 s.current_status = "monitoring"
-            session = MonitoringSession(student_id=s.id, is_active=True)
-            db.add(session)
+        session = MonitoringSession(student_id=s.id, is_active=True)
+        db.add(session)
     await db.commit()
 
     await manager.broadcast_agents("monitoring_started", {})
-    return {"message": "Monitoring started for connected students"}
+    return {"message": "Monitoring started"}
 
 
 @router.post("/stop")
@@ -148,6 +148,18 @@ async def reconnect(body: dict, db: AsyncSession = Depends(get_db)):
     student.connection_status = "connected"
 
     await db.commit()
+
+    # Broadcast updated student status to faculty dashboard instantly
+    await manager.broadcast_faculty("student_status", {
+        "student_id": student.id,
+        "name": student.name,
+        "section": student.section,
+        "status": student.current_status,
+        "reason": student.reason or "",
+        "warning_count": student.warning_count,
+        "screenshot": student.latest_screenshot,
+        "last_seen": now.isoformat(),
+    })
 
     return {
         "ok": True,

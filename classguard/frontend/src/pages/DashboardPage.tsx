@@ -12,7 +12,7 @@ import {
   Eye,
 } from 'lucide-react'
 import { Student, MonitoringState } from '../types'
-import { api } from '../services/api'
+import { api, API_BASE } from '../services/api'
 import { wsClient } from '../services/websocket'
 import { StatCard } from '../components/StatCard'
 import { SectionCard } from '../components/SectionCard'
@@ -163,7 +163,7 @@ export function DashboardPage() {
       )
     })
 
-    const interval = setInterval(() => loadData(true), 5000)
+    const interval = setInterval(() => loadData(true), 30000)
 
     return () => {
       unsub1()
@@ -428,7 +428,7 @@ export function DashboardPage() {
                   >
                     {alert.screenshot && (
                       <img
-                        src={`http://localhost:8000${alert.screenshot}`}
+                        src={`${API_BASE}${alert.screenshot}`}
                         alt="Alert Screen"
                         className="w-14 h-9 object-cover rounded border border-red-200 shrink-0 self-center"
                       />
@@ -559,10 +559,10 @@ export function DashboardPage() {
                         {log.screenshot && (
                           <div 
                             className="relative w-full sm:w-28 h-16 rounded border border-gray-250 overflow-hidden shadow-sm shrink-0 cursor-zoom-in group self-center"
-                            onClick={() => setZoomUrl(`http://localhost:8000${log.screenshot}`)}
+                            onClick={() => setZoomUrl(`${API_BASE}${log.screenshot}`)}
                           >
                             <img 
-                              src={`http://localhost:8000${log.screenshot}`} 
+                              src={`${API_BASE}${log.screenshot}`} 
                               alt="Timeline screen capture" 
                               className="w-full h-full object-cover transition-transform group-hover:scale-105"
                             />

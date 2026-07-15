@@ -1,4 +1,4 @@
-const BASE = (import.meta as any).env.VITE_API_URL || `${window.location.protocol}//${window.location.hostname}:8000`
+export const API_BASE = (import.meta as any).env.VITE_API_URL || `${window.location.protocol}//${window.location.hostname}:8000`
 
 function getToken(): string | null {
   return localStorage.getItem('token')
@@ -12,7 +12,7 @@ async function request(path: string, options: RequestInit = {}) {
   }
   if (token) headers['Authorization'] = `Bearer ${token}`
 
-  const res = await fetch(`${BASE}${path}`, { ...options, headers })
+  const res = await fetch(`${API_BASE}${path}`, { ...options, headers })
   if (!res.ok) {
     if (res.status === 401 && !path.startsWith('/api/auth/')) {
       localStorage.removeItem('token')

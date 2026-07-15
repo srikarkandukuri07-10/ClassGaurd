@@ -22,15 +22,7 @@ async def login(body: LoginRequest, db: AsyncSession = Depends(get_db)):
 
 @router.post("/register")
 async def register(body: LoginRequest, db: AsyncSession = Depends(get_db)):
-    existing = await db.execute(select(Faculty).where(Faculty.email == body.email))
-    if existing.scalar_one_or_none():
-        raise HTTPException(status_code=400, detail="Email already registered")
-
-    user = Faculty(
-        name=body.email.split("@")[0],
-        email=body.email,
-        hashed_password=hash_password(body.password),
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Registration is disabled. Only the designated administrator can access this dashboard."
     )
-    db.add(user)
-    await db.commit()
-    return {"message": "Faculty registered successfully"}

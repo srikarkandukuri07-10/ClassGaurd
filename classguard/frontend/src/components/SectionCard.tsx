@@ -1,6 +1,7 @@
 import { ChevronDown, ChevronUp, Users, Wifi, WifiOff, Copy, Check, MonitorPlay } from 'lucide-react'
 import { useState } from 'react'
 import { Student } from '../types'
+import { API_BASE } from '../services/api'
 
 interface Props {
   section: string
@@ -81,11 +82,11 @@ export function SectionCard({
                   {s.latest_screenshot ? (
                     <div 
                       className="w-16 h-10 rounded border border-gray-200 overflow-hidden shadow-sm cursor-zoom-in relative"
-                      onClick={() => onViewScreenshot(`http://localhost:8000${s.latest_screenshot}`)}
+                      onClick={() => onViewScreenshot(`${API_BASE}${s.latest_screenshot}`)}
                       title="Click to zoom screen"
                     >
                       <img
-                        src={`http://localhost:8000${s.latest_screenshot}`}
+                        src={`${API_BASE}${s.latest_screenshot}`}
                         alt="Desktop Feed"
                         className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-110"
                       />

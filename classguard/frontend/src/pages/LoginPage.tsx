@@ -9,7 +9,6 @@ export function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
-  const [isRegister, setIsRegister] = useState(false)
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
 
@@ -19,21 +18,12 @@ export function LoginPage() {
     setError('')
     setSuccess('')
     try {
-      if (isRegister) {
-        await api.register(email, password)
-        setSuccess('Registration successful! Signing in...')
-        const data = await api.login(email, password)
-        localStorage.setItem('token', data.access_token)
-        wsClient.connect(data.access_token)
-        navigate('/dashboard')
-      } else {
-        const data = await api.login(email, password)
-        localStorage.setItem('token', data.access_token)
-        wsClient.connect(data.access_token)
-        navigate('/dashboard')
-      }
+      const data = await api.login(email, password)
+      localStorage.setItem('token', data.access_token)
+      wsClient.connect(data.access_token)
+      navigate('/dashboard')
     } catch (err: any) {
-      setError(err.message || (isRegister ? 'Registration failed' : 'Login failed'))
+      setError(err.message || 'Login failed')
     } finally {
       setLoading(false)
     }
@@ -48,7 +38,7 @@ export function LoginPage() {
           </div>
           <h1 className="text-2xl font-bold text-gray-800">ClassGuard</h1>
           <p className="text-sm text-gray-500 mt-1">
-            {isRegister ? 'Faculty Registration' : 'Faculty Dashboard'}
+            Faculty Dashboard
           </p>
         </div>
 
@@ -85,22 +75,8 @@ export function LoginPage() {
             disabled={loading}
             className="w-full py-2.5 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 disabled:opacity-50 transition-colors"
           >
-            {loading ? (isRegister ? 'Registering...' : 'Signing in...') : (isRegister ? 'Register Account' : 'Sign In')}
+            {loading ? 'Signing in...' : 'Sign In'}
           </button>
-          
-          <div className="text-center mt-4">
-            <button
-              type="button"
-              onClick={() => {
-                setIsRegister(!isRegister)
-                setError('')
-                setSuccess('')
-              }}
-              className="text-sm text-indigo-600 hover:text-indigo-800 font-medium transition-colors"
-            >
-              {isRegister ? 'Already have an account? Sign In' : "Don't have an account? Register"}
-            </button>
-          </div>
         </form>
       </div>
     </div>

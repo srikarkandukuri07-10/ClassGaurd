@@ -41,6 +41,22 @@ async def check_heartbeats():
 async def lifespan(app: FastAPI):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+    
+    # Auto-seed the single admin faculty account if it doesn't exist
+    from app.core.security import hash_password
+    from app.models.faculty import Faculty
+    async with async_session() as db:
+        result = await db.execute(select(Faculty).where(Faculty.email == "kandukurisrikar10@gmail.com"))
+        user = result.scalar_one_or_none()
+        if not user:
+            admin_user = Faculty(
+                name="Srikar Kandukuri",
+                email="kandukurisrikar10@gmail.com",
+                hashed_password=hash_password("K.Srikar@10"),
+            )
+            db.add(admin_user)
+            await db.commit()
+
     task = asyncio.create_task(check_heartbeats())
     yield
     task.cancel()
