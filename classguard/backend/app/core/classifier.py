@@ -62,34 +62,38 @@ class ScreenClassifier:
         window_title: Optional[str] = None,
         browser_tabs: Optional[list[str]] = None,
     ) -> dict:
-        # 1. Try Gemini Vision first if image and key are present
         api_key = settings.GEMINI_API_KEY
-        if image_b64 and api_key:
-            gemini_result = await self._classify_image_with_gemini(image_b64, window_title, api_key)
-            if gemini_result:
-                return gemini_result
-
-        # 2. Local Fallback Heuristics
-        reasons = []
         title_lower = (window_title or "").lower()
         all_tabs_lower = [t.lower() for t in (browser_tabs or [])]
 
-        if self._is_studying_activity(title_lower, all_tabs_lower):
-            if window_title:
-                reasons.append(window_title)
-            return {"status": "studying", "reason": "; ".join(reasons) or "Focus task", "confidence": 0.85}
+        print(f"[Classifier] window='{window_title}' gemini_key={'SET' if api_key else 'NOT SET'}")
+
+        # 1. Check off-task FIRST (highest priority) — so YouTube/Netflix are NEVER misclassified as studying
+        if self._is_off_task_activity(title_lower, all_tabs_lower):
+            reason = window_title or "Off-task activity"
+            print(f"[Classifier] → off-task (keyword match): {reason}")
+            return {"status": "off-task", "reason": reason, "confidence": 0.95}
 
         if self._is_suspicious_activity(title_lower, all_tabs_lower):
-            if window_title:
-                reasons.append(f"Suspicious activity: {window_title}")
-            return {"status": "suspicious", "reason": "; ".join(reasons), "confidence": 0.8}
+            reason = f"Suspicious: {window_title}"
+            print(f"[Classifier] → suspicious: {reason}")
+            return {"status": "suspicious", "reason": reason, "confidence": 0.85}
 
-        if self._is_off_task_activity(title_lower, all_tabs_lower):
-            if window_title:
-                reasons.append(window_title)
-            return {"status": "off-task", "reason": "; ".join(reasons), "confidence": 0.9}
+        # 2. Try Gemini Vision for ambiguous cases (e.g. YouTube with academic title)
+        if image_b64 and api_key:
+            gemini_result = await self._classify_image_with_gemini(image_b64, window_title, api_key)
+            if gemini_result:
+                print(f"[Classifier] → Gemini says: {gemini_result['status']}")
+                return gemini_result
 
-        return {"status": "studying", "reason": "No clear off-task indicators", "confidence": 0.5}
+        # 3. Studying keyword fallback
+        if self._is_studying_activity(title_lower, all_tabs_lower):
+            reason = window_title or "Studying"
+            print(f"[Classifier] → studying (keyword match): {reason}")
+            return {"status": "studying", "reason": reason, "confidence": 0.85}
+
+        print(f"[Classifier] → studying (default)")
+        return {"status": "studying", "reason": "No off-task indicators found", "confidence": 0.5}
 
     def _is_studying_activity(self, title: str, tabs: list[str]) -> bool:
         texts = [title] + tabs

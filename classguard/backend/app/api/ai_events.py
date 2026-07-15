@@ -105,14 +105,22 @@ async def handle_ai_classification(
         student.latest_screenshot = screenshot_url
 
     if body.status == "off-task":
-        student.warning_count += 1
+        now_ts = now.timestamp()
+        last_warned = getattr(student, 'last_warned_at', None)
+        secs_since = (now_ts - last_warned.timestamp()) if last_warned else 999
 
-        warning = WarningModel(
-            student_id=student.id,
-            level=student.warning_count,
-            reason=body.reason or body.window_title or "",
-        )
-        db.add(warning)
+        # Only increment warning count if at least 60 seconds have passed
+        if secs_since >= 60:
+            student.warning_count += 1
+            if hasattr(student, 'last_warned_at'):
+                student.last_warned_at = now
+
+            warning = WarningModel(
+                student_id=student.id,
+                level=student.warning_count,
+                reason=body.reason or body.window_title or "",
+            )
+            db.add(warning)
 
         warning_messages = {
             1: "You appear to be off-task. Please return to your studies.",
