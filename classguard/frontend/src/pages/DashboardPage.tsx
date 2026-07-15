@@ -97,6 +97,10 @@ export function DashboardPage() {
       return
     }
 
+    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission()
+    }
+
     loadData()
 
     wsClient.connect(token)
@@ -150,6 +154,13 @@ export function DashboardPage() {
         `🚨 ${data.student_name} (${data.section}) Off-Task: ${data.reason}`,
         'warning'
       )
+
+      if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+        new Notification(`ClassGuard Alert: ${data.student_name} (${data.section})`, {
+          body: `Off-Task: ${data.reason}`,
+        })
+      }
+
       api.getState().then(setState).catch(console.error)
     })
 

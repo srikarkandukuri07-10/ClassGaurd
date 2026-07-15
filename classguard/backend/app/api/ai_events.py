@@ -18,7 +18,10 @@ from pydantic import BaseModel
 from typing import Optional
 import httpx
 
+from app.core.classifier import ScreenClassifier
+
 router = APIRouter(prefix="/api/ai", tags=["ai"])
+classifier = ScreenClassifier()
 
 
 class ClassifyRequest(BaseModel):
@@ -29,23 +32,11 @@ class ClassifyRequest(BaseModel):
 
 @router.post("/classify")
 async def classify_agent_request(req: ClassifyRequest):
-    try:
-        async with httpx.AsyncClient(timeout=15.0) as client:
-            ai_resp = await client.post(
-                f"{settings.AI_SERVICE_URL}/api/ai/classify",
-                json={
-                    "device_id": req.device_id,
-                    "window_title": req.window_title,
-                    "image": req.image,
-                }
-            )
-            if ai_resp.status_code == 200:
-                return ai_resp.json()
-            else:
-                return {"status": "studying", "reason": "AI service error", "confidence": 0.5}
-    except Exception as e:
-        print("Failed to contact AI service:", e)
-        return {"status": "studying", "reason": "AI service offline", "confidence": 0.5}
+    result = await classifier.classify(
+        image_b64=req.image,
+        window_title=req.window_title,
+    )
+    return result
 
 
 @router.post("/result")
