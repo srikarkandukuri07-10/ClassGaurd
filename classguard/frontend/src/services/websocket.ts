@@ -1,3 +1,5 @@
+import { API_BASE } from './api'
+
 type Handler = (data: any) => void
 
 export class WsClient {
@@ -5,9 +7,8 @@ export class WsClient {
   private handlers = new Map<string, Handler[]>()
 
   connect(token: string) {
-    const apiBase = (import.meta as any).env.VITE_API_URL || `${window.location.protocol}//${window.location.hostname}:8000`
-    const wsProto = apiBase.startsWith('https') ? 'wss' : 'ws'
-    const wsHost = apiBase.replace(/^https?:\/\//, '')
+    const wsProto = API_BASE.startsWith('https') ? 'wss' : 'ws'
+    const wsHost = API_BASE.replace(/^https?:\/\//, '')
     this.ws = new WebSocket(`${wsProto}://${wsHost}/ws/faculty?token=${token}`)
 
     this.ws.onmessage = (event) => {

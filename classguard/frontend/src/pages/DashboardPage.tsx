@@ -327,8 +327,7 @@ export function DashboardPage() {
 
         {/* Onboarding & Downloads Section */}
         {(() => {
-          const apiBase = (import.meta as any).env.VITE_API_URL || `${window.location.protocol}//${window.location.hostname}:8000`
-          const downloadUrl = `${apiBase}/static/downloads/classguard-setup.exe`
+          const downloadUrl = `${API_BASE}/static/downloads/classguard-setup.exe`
           return (
             <div className="bg-indigo-50/50 border border-indigo-100 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="space-y-1">

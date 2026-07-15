@@ -1,4 +1,8 @@
-export const API_BASE = (import.meta as any).env.VITE_API_URL || `${window.location.protocol}//${window.location.hostname}:8000`
+export const API_BASE = (import.meta as any).env.VITE_API_URL || (
+  window.location.hostname.includes('localhost') || window.location.hostname.includes('127.0.0.1')
+    ? `${window.location.protocol}//${window.location.hostname}:8000`
+    : 'https://classguard-backend.onrender.com'
+)
 
 function getToken(): string | null {
   return localStorage.getItem('token')
