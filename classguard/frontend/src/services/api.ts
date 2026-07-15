@@ -14,7 +14,7 @@ async function request(path: string, options: RequestInit = {}) {
 
   const res = await fetch(`${BASE}${path}`, { ...options, headers })
   if (!res.ok) {
-    if (res.status === 401) {
+    if (res.status === 401 && !path.startsWith('/api/auth/')) {
       localStorage.removeItem('token')
       window.location.href = '/'
     }

@@ -56,9 +56,9 @@ export function DashboardPage() {
     setTimeout(() => setToast(null), 4000)
   }
 
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async (silent = false) => {
     try {
-      setLoading(true)
+      if (!silent) setLoading(true)
       const [st, stu, secData] = await Promise.all([
         api.getState(),
         api.getStudents(),
@@ -82,10 +82,11 @@ export function DashboardPage() {
         })
         return next
       })
-    } catch (err) {
+    } catch (err: any) {
       console.error('loadData error:', err)
+      showToast(err.message || 'Failed to load data', 'warning')
     } finally {
-      setLoading(false)
+      if (!silent) setLoading(false)
     }
   }, [])
 
@@ -162,7 +163,7 @@ export function DashboardPage() {
       )
     })
 
-    const interval = setInterval(loadData, 5000)
+    const interval = setInterval(() => loadData(true), 5000)
 
     return () => {
       unsub1()
@@ -280,7 +281,7 @@ export function DashboardPage() {
               <Plus className="w-4 h-4" /> Add Student
             </button>
             <button
-              onClick={loadData}
+              onClick={() => loadData()}
               className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
               title="Refresh"
             >
