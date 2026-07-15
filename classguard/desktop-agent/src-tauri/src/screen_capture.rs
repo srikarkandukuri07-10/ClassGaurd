@@ -31,48 +31,64 @@ pub fn run_forever(
     running: &Arc<AtomicBool>,
     monitoring_active: &Arc<AtomicBool>,
 ) {
-    // Wait briefly so the WebSocket connection can establish first
+    // Wait for ws_client to establish its connection first
     thread::sleep(Duration::from_secs(5));
 
-    let scheme_ws = if server_url.contains("localhost") || server_url.contains("127.0.0.1") { "ws" } else { "wss" };
-    let ws_url = format!("{}://{}/ws/agent?device_token={}", scheme_ws, server_url, device_token);
+    let scheme = if server_url.contains("localhost") || server_url.contains("127.0.0.1") { "http" } else { "https" };
+    let classify_url = format!("{}://{}/api/ai/classify", scheme, server_url);
+    let result_url   = format!("{}://{}/api/ai/result", scheme, server_url);
+    let dt = device_token.to_string();
 
-    let r = running.clone();
+    let r  = running.clone();
     let ma = monitoring_active.clone();
-    let wu = ws_url.clone();
 
     thread::spawn(move || {
+        let client = reqwest::blocking::Client::builder()
+            .timeout(Duration::from_secs(20))
+            .build()
+            .unwrap_or_default();
+
         while r.load(Ordering::SeqCst) {
             if !ma.load(Ordering::SeqCst) {
                 thread::sleep(Duration::from_secs(2));
                 continue;
             }
 
-            let title = get_active_window_title();
+            let title      = get_active_window_title();
             let screenshot = capture_screen_base64();
 
-            if title.is_empty() && screenshot.is_none() {
+            if title.is_empty() {
                 thread::sleep(Duration::from_secs(5));
                 continue;
             }
 
-            // Send as screen_frame over WebSocket
-            match tungstenite::connect(&wu) {
-                Ok((mut socket, _)) => {
-                    let msg = serde_json::json!({
-                        "event": "screen_frame",
+            // Step 1 — classify via backend (Gemini Vision or keyword fallback)
+            let classify_body = serde_json::json!({
+                "device_id":    dt,
+                "window_title": title,
+                "image":        screenshot,
+            });
+
+            if let Ok(resp) = client.post(&classify_url).json(&classify_body).send() {
+                if let Ok(result) = resp.json::<serde_json::Value>() {
+                    let status     = result["status"].as_str().unwrap_or("studying").to_string();
+                    let reason     = result["reason"].as_str().unwrap_or("").to_string();
+                    let confidence = result["confidence"].as_f64().unwrap_or(0.8);
+
+                    // Step 2 — push result back so backend fires warnings + notifications
+                    let result_body = serde_json::json!({
+                        "device_id":    dt,
+                        "status":       status,
+                        "reason":       reason,
                         "window_title": title,
-                        "screenshot": screenshot,
+                        "screenshot":   screenshot,
+                        "confidence":   confidence,
                     });
-                    let _ = socket.send(tungstenite::Message::Text(msg.to_string()));
-                    let _ = socket.close(None);
-                }
-                Err(e) => {
-                    eprintln!("[ScreenCapture] WS send failed: {}", e);
+                    let _ = client.post(&result_url).json(&result_body).send();
                 }
             }
 
-            thread::sleep(Duration::from_secs(5));
+            thread::sleep(Duration::from_secs(10));
         }
     });
 }
