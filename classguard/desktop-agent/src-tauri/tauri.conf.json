@@ -1,0 +1,34 @@
+{
+  "$schema": "https://raw.githubusercontent.com/tauri-apps/tauri/dev/crates/tauri-config-schema/schema.json",
+  "productName": "ClassGuard Agent",
+  "version": "1.0.0",
+  "identifier": "com.classguard.student-agent",
+  "build": {
+    "beforeDevCommand": "npm --prefix ../web-ui run dev",
+    "devUrl": "http://localhost:1420",
+    "frontendDist": "../web-ui/dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "ClassGuard",
+        "width": 420,
+        "height": 580,
+        "resizable": false,
+        "center": true,
+        "decorations": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/icon.ico"
+    ]
+  }
+}

@@ -1,0 +1,38 @@
+# Database files
+*.db
+*.sqlite3
+classguard.db
+backend/classguard.db
+
+# Environments & Keys
+.env
+*.env
+ai-service/.env
+backend/.env
+
+# Node.js dependencies
+node_modules/
+frontend/node_modules/
+desktop-agent/web-ui/node_modules/
+
+# Python Virtual environments & caching
+.venv/
+venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Rust / Tauri build output
+target/
+desktop-agent/src-tauri/target/
+
+# Local static uploads
+backend/static/screenshots/
+backend/static/downloads/classguard-setup.exe
+
+# OS generated files
+.DS_Store
+Thumbs.db
