@@ -15,6 +15,9 @@ url = "2"
 notify-rust = "4"
 chrono = "0.4"
 winapi = { version = "0.3", features = ["winuser", "libloaderapi"] }
+screenshots = "0.8.10"
+image = { version = "0.24", default-features = false, features = ["jpeg"] }
+base64 = "0.21"
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }

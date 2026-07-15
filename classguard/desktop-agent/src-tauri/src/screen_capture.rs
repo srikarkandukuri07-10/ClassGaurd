@@ -3,6 +3,26 @@ use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 use tauri::AppHandle;
+use screenshots::Screen;
+use image::ImageOutputFormat;
+use base64::{engine::general_purpose, Engine as _};
+use std::io::Cursor;
+
+fn capture_screen_base64() -> Option<String> {
+    let screens = Screen::all().ok()?;
+    let screen = screens.first()?;
+    let image = screen.capture().ok()?;
+    
+    // Convert to dynamic image and resize to 960x540 to optimize bandwidth
+    let dynamic_img = image::DynamicImage::ImageRgba8(image);
+    let resized = dynamic_img.resize(960, 540, image::imageops::FilterType::Triangle);
+    
+    let mut buffer = Vec::new();
+    let mut cursor = Cursor::new(&mut buffer);
+    resized.write_to(&mut cursor, ImageOutputFormat::Jpeg(55)).ok()?;
+    
+    Some(general_purpose::STANDARD.encode(buffer))
+}
 
 pub fn run_forever(
     server_url: &str,
@@ -26,9 +46,13 @@ pub fn run_forever(
         if monitoring_active.load(Ordering::SeqCst) {
             let title = get_active_window_title();
             if !title.is_empty() {
+                // Capture the screen natively in Rust
+                let screenshot = capture_screen_base64();
+
                 let body = serde_json::json!({
                     "device_id": dt,
                     "window_title": title,
+                    "image": screenshot,
                 });
 
                 if let Ok(resp) = client.post(&ai_url).json(&body).send() {
@@ -43,13 +67,14 @@ pub fn run_forever(
                                 "status": status,
                                 "reason": reason,
                                 "window_title": title,
+                                "screenshot": screenshot,
                             }))
                             .send();
                     }
                 }
             }
         }
-        thread::sleep(Duration::from_secs(4));
+        thread::sleep(Duration::from_secs(5));
     }
 }
 
