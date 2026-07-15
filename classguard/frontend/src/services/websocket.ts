@@ -5,7 +5,10 @@ export class WsClient {
   private handlers = new Map<string, Handler[]>()
 
   connect(token: string) {
-    this.ws = new WebSocket(`ws://localhost:8000/ws/faculty?token=${token}`)
+    const apiBase = (import.meta as any).env.VITE_API_URL || `${window.location.protocol}//${window.location.hostname}:8000`
+    const wsProto = apiBase.startsWith('https') ? 'wss' : 'ws'
+    const wsHost = apiBase.replace(/^https?:\/\//, '')
+    this.ws = new WebSocket(`${wsProto}://${wsHost}/ws/faculty?token=${token}`)
 
     this.ws.onmessage = (event) => {
       try {
