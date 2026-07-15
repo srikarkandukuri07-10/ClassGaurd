@@ -7,7 +7,7 @@ interface Props {
 
 export default function SetupView({ onConnect, error }: Props) {
   const [code, setCode] = useState("");
-  const [serverUrl, setServerUrl] = useState("localhost:8000");
+  const [serverUrl, setServerUrl] = useState("classguard-backend.onrender.com");
   const [loading, setLoading] = useState(false);
   const [showServer, setShowServer] = useState(false);
 

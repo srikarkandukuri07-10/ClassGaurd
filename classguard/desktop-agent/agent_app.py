@@ -10,9 +10,12 @@ import websocket
 import ctypes
 import ctypes.wintypes
 
-SERVER = "localhost:8000"
-HTTP_URL = f"http://{SERVER}"
-AI_URL = f"http://localhost:8001"
+SERVER = "classguard-backend.onrender.com"
+HTTP_SCHEME = "https" if "localhost" not in SERVER and "127.0.0.1" not in SERVER else "http"
+WS_SCHEME = "wss" if "localhost" not in SERVER and "127.0.0.1" not in SERVER else "ws"
+
+HTTP_URL = f"{HTTP_SCHEME}://{SERVER}"
+AI_URL = "http://localhost:8001"
 TOKEN_FILE = "classguard_token.json"
 
 
@@ -178,7 +181,7 @@ class AgentApp:
         self.root.mainloop()
 
     def ws_thread(self):
-        url = f"ws://{SERVER}/ws/agent?device_token={self.device_token}"
+        url = f"{WS_SCHEME}://{SERVER}/ws/agent?device_token={self.device_token}"
         while self.running:
             try:
                 self.ws = websocket.WebSocket()

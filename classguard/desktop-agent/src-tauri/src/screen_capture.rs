@@ -13,8 +13,9 @@ pub fn run_forever(
 ) {
     thread::sleep(Duration::from_secs(3));
 
-    let http_url = format!("http://{}", server_url);
-    let ai_url = format!("http://{}/api/ai/classify", server_url);
+    let scheme = if server_url.contains("localhost") || server_url.contains("127.0.0.1") { "http" } else { "https" };
+    let http_url = format!("{}://{}", scheme, server_url);
+    let ai_url = format!("{}://{}/api/ai/classify", scheme, server_url);
     let dt = device_token.to_string();
     let client = reqwest::blocking::Client::builder()
         .timeout(Duration::from_secs(15))

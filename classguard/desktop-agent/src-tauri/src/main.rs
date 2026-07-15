@@ -25,7 +25,7 @@ fn main() {
         .plugin(tauri_plugin_shell::init())
         .manage(AppState {
             device_token: Arc::new(Mutex::new(None)),
-            server_url: Arc::new(Mutex::new("localhost:8000".to_string())),
+            server_url: Arc::new(Mutex::new("classguard-backend.onrender.com".to_string())),
             monitoring_active: Arc::new(AtomicBool::new(false)),
             running: Arc::new(AtomicBool::new(true)),
         })

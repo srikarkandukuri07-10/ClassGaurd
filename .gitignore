@@ -31,7 +31,6 @@ desktop-agent/src-tauri/target/
 
 # Local static uploads
 backend/static/screenshots/
-backend/static/downloads/classguard-setup.exe
 
 # OS generated files
 .DS_Store

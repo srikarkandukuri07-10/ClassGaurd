@@ -45,8 +45,13 @@ fn start_background_threads(
     let mon_active = app_handle.state::<AppState>().monitoring_active.clone();
     let running = Arc::new(AtomicBool::new(true));
 
-    let ws_url = format!("ws://{}/ws/agent?device_token={}", server_url, device_token);
-    let http_url = format!("http://{}", server_url);
+    let (http_scheme, ws_scheme) = if server_url.contains("localhost") || server_url.contains("127.0.0.1") {
+        ("http", "ws")
+    } else {
+        ("https", "wss")
+    };
+    let ws_url = format!("{}://{}/ws/agent?device_token={}", ws_scheme, server_url, device_token);
+    let http_url = format!("{}://{}", http_scheme, server_url);
 
     let r1 = running.clone();
     let r2 = running.clone();
@@ -71,13 +76,14 @@ fn start_background_threads(
             if !r2.load(Ordering::SeqCst) {
                 break;
             }
+            let scheme = if su_hb.contains("localhost") || su_hb.contains("127.0.0.1") { "http" } else { "https" };
             if let Some(c) = reqwest::blocking::Client::builder()
                 .timeout(Duration::from_secs(5))
                 .build()
                 .ok()
             {
                 let body = serde_json::json!({ "device_token": dt_hb });
-                let _ = c.post(format!("{}/api/monitoring/heartbeat", su_hb))
+                let _ = c.post(format!("{}://{}/api/monitoring/heartbeat", scheme, su_hb))
                     .json(&body)
                     .send();
             }
@@ -101,22 +107,23 @@ pub async fn check_token(
             .timeout(Duration::from_secs(10))
             .build()
             .map_err(|e| e.to_string())?;
+        let scheme = if data.server_url.contains("localhost") || data.server_url.contains("127.0.0.1") { "http" } else { "https" };
         let resp = client
-            .post(format!("http://{}/api/monitoring/reconnect", data.server_url))
+            .post(format!("{}://{}/api/monitoring/reconnect", scheme, data.server_url))
             .json(&serde_json::json!({ "device_token": data.device_token }))
             .send()
             .await
             .map_err(|_| "Cannot reach server".to_string())?;
         if resp.status().is_success() {
             let json: serde_json::Value = resp.json().await.map_err(|_| "Bad response".to_string())?;
-            if json.get("ok").and_then(|v| v.as_bool()).unwrap_or(false) {
+            if json["success"].as_bool().unwrap_or(false) {
                 if let Ok(mut token) = state.device_token.lock() {
                     *token = Some(data.device_token.clone());
                 }
                 if let Ok(mut url) = state.server_url.lock() {
                     *url = data.server_url.clone();
                 }
-                start_background_threads(app_handle.clone(), data.device_token.clone(), data.server_url.clone());
+                start_background_threads(app_handle, data.device_token.clone(), data.server_url.clone());
                 return Ok(Some(StudentInfo {
                     student_name: json["student_name"].as_str().unwrap_or("Student").to_string(),
                     section: json["section"].as_str().unwrap_or("").to_string(),
@@ -143,8 +150,9 @@ pub async fn link_device(
         .build()
         .map_err(|e| e.to_string())?;
 
+    let scheme = if server_url.contains("localhost") || server_url.contains("127.0.0.1") { "http" } else { "https" };
     let resp = client
-        .post(format!("http://{}/api/students/link-device", server_url))
+        .post(format!("{}://{}/api/students/link-device", scheme, server_url))
         .json(&serde_json::json!({ "code": code }))
         .send()
         .await
