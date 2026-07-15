@@ -325,34 +325,40 @@ export function DashboardPage() {
         </div>
 
         {/* Onboarding & Downloads Section */}
-        <div className="bg-indigo-50/50 border border-indigo-100 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <h3 className="text-sm font-semibold text-indigo-900 flex items-center gap-2">
-              <Eye className="w-4 h-4 text-indigo-600" />
-              Student Onboarding & Download Link
-            </h3>
-            <p className="text-xs text-indigo-750">
-              Provide this universal link to your students to download the ClassGuard agent on their laptops.
-            </p>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <input
-              type="text"
-              readOnly
-              value={`${window.location.protocol}//${window.location.hostname}:8000/static/downloads/classguard-setup.exe`}
-              className="bg-white border border-indigo-150 px-3 py-1.5 rounded-lg text-xs font-mono text-indigo-800 outline-none w-[280px]"
-            />
-            <button
-              onClick={() => {
-                navigator.clipboard.writeText(`${window.location.protocol}//${window.location.hostname}:8000/static/downloads/classguard-setup.exe`);
-                showToast("Universal installer download link copied to clipboard!", "success");
-              }}
-              className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shadow-sm transition-all"
-            >
-              Copy Link
-            </button>
-          </div>
-        </div>
+        {(() => {
+          const apiBase = (import.meta as any).env.VITE_API_URL || `${window.location.protocol}//${window.location.hostname}:8000`
+          const downloadUrl = `${apiBase}/static/downloads/classguard-setup.exe`
+          return (
+            <div className="bg-indigo-50/50 border border-indigo-100 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <h3 className="text-sm font-semibold text-indigo-900 flex items-center gap-2">
+                  <Eye className="w-4 h-4 text-indigo-600" />
+                  Student Onboarding & Download Link
+                </h3>
+                <p className="text-xs text-indigo-750">
+                  Provide this universal link to your students to download the ClassGuard agent on their laptops.
+                </p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <input
+                  type="text"
+                  readOnly
+                  value={downloadUrl}
+                  className="bg-white border border-indigo-150 px-3 py-1.5 rounded-lg text-xs font-mono text-indigo-800 outline-none w-[280px]"
+                />
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(downloadUrl);
+                    showToast("Universal installer download link copied to clipboard!", "success");
+                  }}
+                  className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shadow-sm transition-all"
+                >
+                  Copy Link
+                </button>
+              </div>
+            </div>
+          )
+        })()}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
           {/* Left Panel: Requests & Sections */}
