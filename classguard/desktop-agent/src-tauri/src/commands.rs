@@ -124,6 +124,10 @@ pub async fn check_token(
                 if let Ok(mut url) = state.server_url.lock() {
                     *url = data.server_url.clone();
                 }
+                
+                let active = json["monitoring_enabled"].as_bool().unwrap_or(false) && !json["monitoring_paused"].as_bool().unwrap_or(false);
+                state.monitoring_active.store(active, Ordering::SeqCst);
+
                 start_background_threads(app_handle, data.device_token.clone(), data.server_url.clone());
                 return Ok(Some(StudentInfo {
                     student_name: json["student_name"].as_str().unwrap_or("Student").to_string(),
