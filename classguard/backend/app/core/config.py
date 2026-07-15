@@ -19,3 +19,5 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+if settings.DATABASE_URL.startswith("postgresql://"):
+    settings.DATABASE_URL = settings.DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
