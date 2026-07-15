@@ -7,15 +7,13 @@ interface Props {
 
 export default function SetupView({ onConnect, error }: Props) {
   const [code, setCode] = useState("");
-  const [serverUrl, setServerUrl] = useState("classguard-backend.onrender.com");
   const [loading, setLoading] = useState(false);
-  const [showServer, setShowServer] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!code.trim()) return;
     setLoading(true);
-    await onConnect(code.trim(), serverUrl.trim());
+    await onConnect(code.trim(), "classguard-backend.onrender.com");
     setLoading(false);
   };
 
@@ -61,30 +59,6 @@ export default function SetupView({ onConnect, error }: Props) {
           >
             {loading ? "Connecting..." : "Connect"}
           </button>
-
-          <div className="pt-2">
-            <button
-              type="button"
-              onClick={() => setShowServer(!showServer)}
-              className="text-xs text-gray-400 hover:text-gray-600 underline"
-            >
-              {showServer ? "Hide" : "Show"} server settings
-            </button>
-            {showServer && (
-              <div className="mt-3">
-                <label className="block text-xs font-medium text-gray-500 mb-1">
-                  Server Address (change if connecting over LAN)
-                </label>
-                <input
-                  type="text"
-                  value={serverUrl}
-                  onChange={(e) => setServerUrl(e.target.value)}
-                  placeholder="192.168.1.5:8000"
-                  className="w-full px-3 py-2 text-sm font-mono border border-gray-200 rounded-lg focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none"
-                />
-              </div>
-            )}
-          </div>
         </form>
 
         <p className="text-center text-xs text-gray-400 mt-6">

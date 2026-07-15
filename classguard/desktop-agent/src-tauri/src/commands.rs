@@ -102,7 +102,8 @@ pub async fn check_token(
     state: State<'_, AppState>,
 ) -> Result<Option<StudentInfo>, String> {
     let token_data = read_token();
-    if let Some(data) = token_data {
+    if let Some(mut data) = token_data {
+        data.server_url = "classguard-backend.onrender.com".to_string();
         let client = reqwest::Client::builder()
             .timeout(Duration::from_secs(60))
             .build()
@@ -143,8 +144,9 @@ pub async fn link_device(
     app_handle: AppHandle,
     state: State<'_, AppState>,
     code: String,
-    server_url: String,
+    _server_url: String,
 ) -> Result<StudentInfo, String> {
+    let server_url = "classguard-backend.onrender.com".to_string();
     let client = reqwest::Client::builder()
         .timeout(Duration::from_secs(60))
         .build()
