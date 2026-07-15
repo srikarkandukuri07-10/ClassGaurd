@@ -12,15 +12,15 @@ fn capture_screen_base64() -> Option<String> {
     let screens = Screen::all().ok()?;
     let screen = screens.first()?;
     let image = screen.capture().ok()?;
-    
-    // Convert to dynamic image and resize to 960x540 to optimize bandwidth
+
+    // Resize to 960x540 to minimise bandwidth
     let dynamic_img = image::DynamicImage::ImageRgba8(image);
     let resized = dynamic_img.resize(960, 540, image::imageops::FilterType::Triangle);
-    
+
     let mut buffer = Vec::new();
     let mut cursor = Cursor::new(&mut buffer);
     resized.write_to(&mut cursor, ImageOutputFormat::Jpeg(55)).ok()?;
-    
+
     Some(general_purpose::STANDARD.encode(buffer))
 }
 
@@ -31,51 +31,50 @@ pub fn run_forever(
     running: &Arc<AtomicBool>,
     monitoring_active: &Arc<AtomicBool>,
 ) {
-    thread::sleep(Duration::from_secs(3));
+    // Wait briefly so the WebSocket connection can establish first
+    thread::sleep(Duration::from_secs(5));
 
-    let scheme = if server_url.contains("localhost") || server_url.contains("127.0.0.1") { "http" } else { "https" };
-    let http_url = format!("{}://{}", scheme, server_url);
-    let ai_url = format!("{}://{}/api/ai/classify", scheme, server_url);
-    let dt = device_token.to_string();
-    let client = reqwest::blocking::Client::builder()
-        .timeout(Duration::from_secs(15))
-        .build()
-        .unwrap_or_default();
+    let scheme_ws = if server_url.contains("localhost") || server_url.contains("127.0.0.1") { "ws" } else { "wss" };
+    let ws_url = format!("{}://{}/ws/agent?device_token={}", scheme_ws, server_url, device_token);
 
-    while running.load(Ordering::SeqCst) {
-        if monitoring_active.load(Ordering::SeqCst) {
+    let r = running.clone();
+    let ma = monitoring_active.clone();
+    let wu = ws_url.clone();
+
+    thread::spawn(move || {
+        while r.load(Ordering::SeqCst) {
+            if !ma.load(Ordering::SeqCst) {
+                thread::sleep(Duration::from_secs(2));
+                continue;
+            }
+
             let title = get_active_window_title();
-            if !title.is_empty() {
-                // Capture the screen natively in Rust
-                let screenshot = capture_screen_base64();
+            let screenshot = capture_screen_base64();
 
-                let body = serde_json::json!({
-                    "device_id": dt,
-                    "window_title": title,
-                    "image": screenshot,
-                });
+            if title.is_empty() && screenshot.is_none() {
+                thread::sleep(Duration::from_secs(5));
+                continue;
+            }
 
-                if let Ok(resp) = client.post(&ai_url).json(&body).send() {
-                    if let Ok(result) = resp.json::<serde_json::Value>() {
-                        let status = result.get("status").and_then(|v| v.as_str()).unwrap_or("studying");
-                        let reason = result.get("reason").and_then(|v| v.as_str()).unwrap_or("");
-
-                        let _ = client
-                            .post(format!("{}/api/ai/result", http_url))
-                            .json(&serde_json::json!({
-                                "device_id": dt,
-                                "status": status,
-                                "reason": reason,
-                                "window_title": title,
-                                "screenshot": screenshot,
-                            }))
-                            .send();
-                    }
+            // Send as screen_frame over WebSocket
+            match tungstenite::connect(&wu) {
+                Ok((mut socket, _)) => {
+                    let msg = serde_json::json!({
+                        "event": "screen_frame",
+                        "window_title": title,
+                        "screenshot": screenshot,
+                    });
+                    let _ = socket.send(tungstenite::Message::Text(msg.to_string()));
+                    let _ = socket.close(None);
+                }
+                Err(e) => {
+                    eprintln!("[ScreenCapture] WS send failed: {}", e);
                 }
             }
+
+            thread::sleep(Duration::from_secs(5));
         }
-        thread::sleep(Duration::from_secs(5));
-    }
+    });
 }
 
 fn get_active_window_title() -> String {
