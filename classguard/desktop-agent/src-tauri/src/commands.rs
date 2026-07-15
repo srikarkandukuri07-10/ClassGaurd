@@ -104,7 +104,7 @@ pub async fn check_token(
     let token_data = read_token();
     if let Some(data) = token_data {
         let client = reqwest::Client::builder()
-            .timeout(Duration::from_secs(10))
+            .timeout(Duration::from_secs(60))
             .build()
             .map_err(|e| e.to_string())?;
         let scheme = if data.server_url.contains("localhost") || data.server_url.contains("127.0.0.1") { "http" } else { "https" };
@@ -146,7 +146,7 @@ pub async fn link_device(
     server_url: String,
 ) -> Result<StudentInfo, String> {
     let client = reqwest::Client::builder()
-        .timeout(Duration::from_secs(15))
+        .timeout(Duration::from_secs(60))
         .build()
         .map_err(|e| e.to_string())?;
 
