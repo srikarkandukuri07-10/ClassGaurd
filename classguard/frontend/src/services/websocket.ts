@@ -5,10 +5,9 @@ export class WsClient {
   private handlers = new Map<string, Handler[]>()
 
   connect(token: string) {
+    const isLocal = typeof window !== 'undefined' && localStorage.getItem('use_local') === 'true'
     const wsUrl = (import.meta as any).env.VITE_WS_URL || (
-      window.location.hostname.includes('localhost') || window.location.hostname.includes('127.0.0.1')
-        ? `ws://${window.location.hostname}:8000`
-        : `wss://classguard-backend.onrender.com`
+      isLocal ? `ws://${window.location.hostname}:8000` : `wss://classguard-backend.onrender.com`
     )
     this.ws = new WebSocket(`${wsUrl}/ws/faculty?token=${token}`)
 

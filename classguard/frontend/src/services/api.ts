@@ -1,13 +1,10 @@
-const API_BASE = (import.meta as any).env.VITE_API_URL || (
-  window.location.hostname.includes('localhost') || window.location.hostname.includes('127.0.0.1')
-    ? `http://${window.location.hostname}:8000`
-    : 'https://classguard-backend.onrender.com'
+const isLocal = typeof window !== 'undefined' && localStorage.getItem('use_local') === 'true'
+export const API_BASE = (import.meta as any).env.VITE_API_URL || (
+  isLocal ? `http://${window.location.hostname}:8000` : 'https://classguard-backend.onrender.com'
 )
 
 const WS_BASE = (import.meta as any).env.VITE_WS_URL || (
-  window.location.hostname.includes('localhost') || window.location.hostname.includes('127.0.0.1')
-    ? `ws://${window.location.hostname}:8000`
-    : 'wss://classguard-backend.onrender.com'
+  isLocal ? `ws://${window.location.hostname}:8000` : 'wss://classguard-backend.onrender.com'
 )
 
 const AI_BASE = 'https://classguard-ai.onrender.com'
