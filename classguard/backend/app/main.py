@@ -134,6 +134,14 @@ async def debug_db():
             res2 = await db.execute(select(Faculty))
             faculties = res2.scalars().all()
             
+            from app.core.security import verify_password
+            verify_ok = False
+            if faculties:
+                try:
+                    verify_ok = verify_password("K.Srikar@10", faculties[0].hashed_password)
+                except Exception as e_verify:
+                    verify_ok = f"Error: {str(e_verify)}"
+            
             res3 = await db.execute(text("SELECT * FROM monitoring_logs LIMIT 1"))
             cols = list(res3.keys())
             
@@ -141,6 +149,7 @@ async def debug_db():
                 "db_connect": "ok",
                 "select_1": one,
                 "faculties_count": len(faculties),
+                "password_verify_test": verify_ok,
                 "monitoring_logs_columns": cols
             }
     except Exception as e:
