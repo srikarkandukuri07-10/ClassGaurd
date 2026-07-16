@@ -42,14 +42,23 @@ async def lifespan(app: FastAPI):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
         
-        # Safely add activity and explanation columns if they don't exist
-        for col_name, col_type in [("activity", "VARCHAR(500)"), ("explanation", "VARCHAR(1000)")]:
-            try:
-                await conn.execute(f"ALTER TABLE monitoring_logs ADD COLUMN {col_name} {col_type}")
-                print(f"[Migration] Added column {col_name} to monitoring_logs.")
-            except Exception as e:
-                # Column already exists or error which is fine
-                pass
+    # Safely check and add columns using reflection to avoid transaction corruption
+    try:
+        async with engine.connect() as conn:
+            def get_columns(connection):
+                from sqlalchemy import inspect
+                inspector = inspect(connection)
+                return [c["name"] for c in inspector.get_columns("monitoring_logs")]
+            
+            existing_columns = await conn.run_sync(get_columns)
+            
+            for col_name, col_type in [("activity", "VARCHAR(500)"), ("explanation", "VARCHAR(1000)")]:
+                if col_name not in existing_columns:
+                    async with engine.begin() as alter_conn:
+                        await alter_conn.execute(f"ALTER TABLE monitoring_logs ADD COLUMN {col_name} {col_type}")
+                    print(f"[Migration] Added column {col_name} to monitoring_logs.")
+    except Exception as e:
+        print(f"[Migration Error] Failed to run migrations: {e}")
     
     # Auto-seed the single admin faculty account if it doesn't exist
     from app.core.security import hash_password
