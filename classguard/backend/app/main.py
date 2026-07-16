@@ -119,3 +119,32 @@ app.include_router(ws_router)
 @app.get("/api/health")
 async def health():
     return {"status": "ok"}
+
+
+@app.get("/api/debug-db")
+async def debug_db():
+    import traceback
+    from sqlalchemy import text
+    try:
+        async with async_session() as db:
+            res = await db.execute(text("SELECT 1"))
+            one = res.scalar()
+            
+            from app.models.faculty import Faculty
+            res2 = await db.execute(select(Faculty))
+            faculties = res2.scalars().all()
+            
+            res3 = await db.execute(text("SELECT * FROM monitoring_logs LIMIT 1"))
+            cols = list(res3.keys())
+            
+            return {
+                "db_connect": "ok",
+                "select_1": one,
+                "faculties_count": len(faculties),
+                "monitoring_logs_columns": cols
+            }
+    except Exception as e:
+        return {
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }
