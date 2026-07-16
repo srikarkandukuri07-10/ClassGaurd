@@ -27,18 +27,43 @@ STUDYING_KEYWORDS = {
 }
 
 OFF_TASK_KEYWORDS = {
-    "netflix", "youtube", "prime video", "hotstar", "disney+",
-    "instagram", "facebook", "twitter", "x.com", "reddit",
-    "snapchat", "whatsapp", "telegram", "discord",
-    "tiktok", "instagram stories", "reels", "shorts",
+    # Video streaming
+    "netflix", "youtube", "prime video", "hotstar", "disney+", "hulu",
+    "apple tv", "voot", "sony liv", "kick", "mx player",
+    "tiktok", "youtube shorts", "vimeo", "dailymotion", "live streams",
+
+    # Social media
+    "instagram", "facebook", "twitter", "x.com", "reddit", "twitter/x",
+    "snapchat", "linkedin", "tiktok", "tik tok", "twitter (x)",
+    "instagram stories", "instagram reels", "twitter threads",
+
+    # E-commerce
     "amazon", "flipkart", "myntra", "ajio", "meesho",
-    "zomato", "swiggy", "uber eats",
-    "spotify", "gaana", "wynk", "jiosaavn",
-    "game", "gaming", "minecraft", "pubg", "fortnite",
-    "cricket", "ipl", "football", "sports",
-    "movie", "web series", "tv show", "anime",
-    "pinterest", "quora", "9gag", "imgur",
-    "comedy", "memes", "entertainment",
+    "ebay", "flipkart", "snapdeal", "alibaba", "aliexpress",
+
+    # Food & delivery
+    "zomato", "swiggy", "uber eats", "foodpanda", "dominos",
+
+    # Music
+    "spotify", "gaana", "wynk", "jiosaavn", "apple music", "youtube music",
+    "soundcloud", "gaana", "spotify web player",
+
+    # Games (mainstream)
+    "game", "gaming", "minecraft", "pubg", "fortnite", "valorant",
+    "csgo", "counter strike", "cod", "call of duty", "apex legends",
+    "roblox", "genshin impact", "gta", "gta 5", "rdr2", "electronic arts",
+
+    # Sports
+    "cricket", "ipl", "football", "soccer", "nfl", "nba", "espn",
+
+    # Entertainment
+    "movie", "web series", "tv show", "anime", "hbo", "netflix original",
+    "marvel", "disney", "warner bros", "sony pictures",
+    "comedy", "memes", "funny", "tiktok challenge", "viral",
+
+    # Browsing & research distraction
+    "quora", "pinterest", "9gag", "imgur", "imgbin", "reddit funny",
+    "twitch", "facebook games", "crossword", "sudoku", "wordle",
 }
 
 SUSPICIOUS_KEYWORDS = {

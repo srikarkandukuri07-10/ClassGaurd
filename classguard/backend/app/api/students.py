@@ -98,7 +98,7 @@ async def re_enable_monitoring(
     await db.commit()
 
     from app.ws.manager import manager
-    await manager.send_to_agent(student.unique_code, "monitoring_started", {})
+    await manager.send_to_agent(student.unique_code, "monitoring_started", {"interval_seconds": 1})
 
     return {"message": "Monitoring re-enabled"}
 
@@ -153,6 +153,60 @@ async def link_device(body: LinkDeviceRequest, db: AsyncSession = Depends(get_db
         student_name=student.name,
         section=student.section,
     )
+
+
+@router.post("/register-device")
+async def register_device(body: dict, db: AsyncSession = Depends(get_db)):
+    """
+    Simplified endpoint for agent registration. Takes student_code and returns device_token.
+    This endpoint is used by the student desktop agent.
+    """
+    student_code = body.get("student_code")
+
+    if not student_code:
+        raise HTTPException(status_code=400, detail="student_code required")
+
+    result = await db.execute(select(Student).where(Student.unique_code == student_code))
+    student = result.scalar_one_or_none()
+
+    if not student:
+        return {"error": "Invalid code. Please contact your faculty."}
+
+    if student.connection_status == "connected":
+        device_result = await db.execute(
+            select(Device).where(
+                Device.student_id == student.id,
+                Device.status == "active",
+            )
+        )
+        existing_device = device_result.scalar_one_or_none()
+        if existing_device:
+            return {
+                "device_token": existing_device.device_token,
+                "student_name": student.name,
+                "section": student.section,
+            }
+
+    device_token = secrets.token_hex(32)
+
+    student.connection_status = "connected"
+    student.last_seen = datetime.now(timezone.utc)
+
+    device = Device(
+        student_id=student.id,
+        device_token=device_token,
+        connected_at=datetime.now(timezone.utc),
+        last_seen=datetime.now(timezone.utc),
+        status="active",
+    )
+    db.add(device)
+    await db.commit()
+
+    return {
+        "device_token": device_token,
+        "student_name": student.name,
+        "section": student.section,
+    }
 
 
 @router.get("/{student_id}/history")

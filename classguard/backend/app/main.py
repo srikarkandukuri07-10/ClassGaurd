@@ -41,6 +41,15 @@ async def check_heartbeats():
 async def lifespan(app: FastAPI):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        
+        # Safely add activity and explanation columns if they don't exist
+        for col_name, col_type in [("activity", "VARCHAR(500)"), ("explanation", "VARCHAR(1000)")]:
+            try:
+                await conn.execute(f"ALTER TABLE monitoring_logs ADD COLUMN {col_name} {col_type}")
+                print(f"[Migration] Added column {col_name} to monitoring_logs.")
+            except Exception as e:
+                # Column already exists or error which is fine
+                pass
     
     # Auto-seed the single admin faculty account if it doesn't exist
     from app.core.security import hash_password
@@ -80,8 +89,11 @@ app.add_middleware(
         "http://localhost:5173",
         "http://127.0.0.1:5173",
         "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "https://classguard.onrender.com",
+        "https://classguard-backend.onrender.com",
+        "https://classguard-ai.onrender.com",
     ],
-    allow_origin_regex="https://.*",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

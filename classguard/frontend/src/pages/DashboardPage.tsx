@@ -115,6 +115,8 @@ export function DashboardPage() {
                 warning_count: data.warning_count,
                 latest_screenshot: data.screenshot || s.latest_screenshot,
                 reason: data.reason || s.reason,
+                activity: data.activity || s.activity,
+                explanation: data.explanation || s.explanation,
                 connection_status: 'connected',
                 last_seen: data.last_seen || new Date().toISOString(),
               }
@@ -141,7 +143,9 @@ export function DashboardPage() {
           student_name: data.student_name,
           section: data.section,
           type: data.type,
+          activity: data.activity,
           reason: data.reason,
+          explanation: data.explanation,
           confidence: data.confidence,
           screenshot: data.screenshot,
           time: data.time,
@@ -151,13 +155,13 @@ export function DashboardPage() {
       ].slice(0, 50))
       
       showToast(
-        `🚨 ${data.student_name} (${data.section}) Off-Task: ${data.reason}`,
+        `🚨 ${data.student_name} (${data.section}) Off-Task: ${data.activity || data.reason}`,
         'warning'
       )
 
       if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
         new Notification(`ClassGuard Alert: ${data.student_name} (${data.section})`, {
-          body: `Off-Task: ${data.reason}`,
+          body: `Off-Task: ${data.activity || data.reason}`,
         })
       }
 
@@ -438,7 +442,7 @@ export function DashboardPage() {
                   >
                     {alert.screenshot && (
                       <img
-                        src={`${API_BASE}${alert.screenshot}`}
+                        src={alert.screenshot.startsWith('data:') ? alert.screenshot : `${API_BASE}${alert.screenshot}`}
                         alt="Alert Screen"
                         className="w-14 h-9 object-cover rounded border border-red-200 shrink-0 self-center"
                       />
@@ -452,9 +456,18 @@ export function DashboardPage() {
                           {alert.time}
                         </span>
                       </div>
-                      <p className="text-[11px] text-red-700 font-medium truncate" title={alert.reason}>
-                        {alert.reason}
+                      <p className="text-[11px] text-red-700 font-bold truncate" title={alert.activity || alert.reason}>
+                        {alert.activity || alert.reason}
                       </p>
+                      {alert.explanation ? (
+                        <p className="text-[9px] text-gray-500 line-clamp-1" title={alert.explanation}>
+                          {alert.explanation}
+                        </p>
+                      ) : (
+                        <p className="text-[9px] text-gray-450 truncate" title={alert.reason}>
+                          {alert.reason}
+                        </p>
+                      )}
                       <div className="flex items-center justify-between text-[9px] text-red-500 font-semibold">
                         <span>Confidence: {alert.confidence}%</span>
                         {alert.warning_count && <span>Strike {alert.warning_count}</span>}
@@ -559,20 +572,25 @@ export function DashboardPage() {
                               Confidence: {Math.round(log.confidence * 100)}%
                             </span>
                           </div>
-                          <p className="text-sm font-semibold text-gray-800">
-                            {log.reason}
+                          <p className="text-sm font-bold text-gray-800">
+                            {log.activity || log.reason}
                           </p>
-                          <p className="text-xs text-gray-405 truncate font-mono max-w-[400px]" title={log.window_title}>
-                            {log.window_title || "N/A"}
+                          {log.explanation && (
+                            <p className="text-xs text-gray-650 font-medium">
+                              {log.explanation}
+                            </p>
+                          )}
+                          <p className="text-[10px] text-gray-400 truncate font-mono max-w-[400px]" title={log.window_title}>
+                            Window: {log.window_title || "N/A"}
                           </p>
                         </div>
                         {log.screenshot && (
                           <div 
                             className="relative w-full sm:w-28 h-16 rounded border border-gray-250 overflow-hidden shadow-sm shrink-0 cursor-zoom-in group self-center"
-                            onClick={() => setZoomUrl(`${API_BASE}${log.screenshot}`)}
+                            onClick={() => setZoomUrl(log.screenshot.startsWith('data:') ? log.screenshot : `${API_BASE}${log.screenshot}`)}
                           >
                             <img 
-                              src={`${API_BASE}${log.screenshot}`} 
+                              src={log.screenshot.startsWith('data:') ? log.screenshot : `${API_BASE}${log.screenshot}`} 
                               alt="Timeline screen capture" 
                               className="w-full h-full object-cover transition-transform group-hover:scale-105"
                             />

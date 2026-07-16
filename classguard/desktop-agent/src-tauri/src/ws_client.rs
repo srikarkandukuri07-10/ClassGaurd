@@ -13,11 +13,13 @@ pub fn run_forever(
     app_handle: &AppHandle,
     running: &Arc<AtomicBool>,
     monitoring_active: &Arc<AtomicBool>,
+    capture_interval: &Arc<std::sync::atomic::AtomicU32>,
 ) {
     let app = app_handle.clone();
     let wu = ws_url.to_string();
     let r = running.clone();
     let ma = monitoring_active.clone();
+    let cap_int = capture_interval.clone();
 
     thread::spawn(move || {
         while r.load(Ordering::SeqCst) {
@@ -41,6 +43,11 @@ pub fn run_forever(
                                     match event {
                                         "monitoring_started" => {
                                             ma.store(true, Ordering::SeqCst);
+                                            if let Some(d) = data {
+                                                if let Some(sec) = d.get("interval_seconds").and_then(|v| v.as_u64()) {
+                                                    cap_int.store(sec as u32, Ordering::SeqCst);
+                                                }
+                                            }
                                             let _ = app.emit("monitoring_state", serde_json::json!({ "active": true }));
                                             let _ = app.emit("monitoring_paused", serde_json::json!({ "paused": false, "reason": "" }));
                                         }

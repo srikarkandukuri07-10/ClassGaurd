@@ -82,11 +82,11 @@ export function SectionCard({
                   {s.latest_screenshot ? (
                     <div 
                       className="w-16 h-10 rounded border border-gray-200 overflow-hidden shadow-sm cursor-zoom-in relative"
-                      onClick={() => onViewScreenshot(`${API_BASE}${s.latest_screenshot}`)}
+                      onClick={() => onViewScreenshot(s.latest_screenshot!.startsWith('data:') ? s.latest_screenshot! : `${API_BASE}${s.latest_screenshot}`)}
                       title="Click to zoom screen"
                     >
                       <img
-                        src={`${API_BASE}${s.latest_screenshot}`}
+                        src={s.latest_screenshot.startsWith('data:') ? s.latest_screenshot : `${API_BASE}${s.latest_screenshot}`}
                         alt="Desktop Feed"
                         className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-110"
                       />
@@ -111,9 +111,9 @@ export function SectionCard({
                   
                   {/* Current activity text */}
                   {s.connection_status === 'connected' && s.monitoring_enabled && !s.monitoring_paused ? (
-                    <p className="text-[11px] text-gray-500 truncate max-w-[300px]" title={s.latest_screenshot ? `Active: ${s.reason}` : 'Session starting...'}>
+                    <p className="text-[11px] text-gray-500 truncate max-w-[300px]" title={s.activity || s.reason || 'System Desktop'}>
                       <span className="font-medium text-gray-600">Active: </span>
-                      {s.reason || "System Desktop"}
+                      {s.activity || s.reason || "System Desktop"}
                     </p>
                   ) : s.monitoring_paused ? (
                     <p className="text-[11px] text-orange-600 truncate max-w-[300px]" title={`Paused: ${s.pause_reason}`}>

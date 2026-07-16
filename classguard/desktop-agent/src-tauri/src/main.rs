@@ -11,12 +11,7 @@ mod notifications;
 mod screen_capture;
 mod ws_client;
 
-struct AppState {
-    device_token: Arc<Mutex<Option<String>>>,
-    server_url: Arc<Mutex<String>>,
-    monitoring_active: Arc<AtomicBool>,
-    running: Arc<AtomicBool>,
-}
+use classguard_agent_lib::AppState;
 
 fn main() {
     let _notif = notifications::init();
@@ -28,6 +23,7 @@ fn main() {
             server_url: Arc::new(Mutex::new("classguard-backend.onrender.com".to_string())),
             monitoring_active: Arc::new(AtomicBool::new(false)),
             running: Arc::new(AtomicBool::new(true)),
+            capture_interval: Arc::new(std::sync::atomic::AtomicU32::new(1)),
         })
         .setup(|app| {
             let show = MenuItemBuilder::with_id("show", "Show Window").build(app)?;

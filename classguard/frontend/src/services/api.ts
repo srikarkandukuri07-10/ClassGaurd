@@ -1,8 +1,16 @@
-export const API_BASE = (import.meta as any).env.VITE_API_URL || (
+const API_BASE = (import.meta as any).env.VITE_API_URL || (
   window.location.hostname.includes('localhost') || window.location.hostname.includes('127.0.0.1')
-    ? `${window.location.protocol}//${window.location.hostname}:8000`
+    ? `http://${window.location.hostname}:8000`
     : 'https://classguard-backend.onrender.com'
 )
+
+const WS_BASE = (import.meta as any).env.VITE_WS_URL || (
+  window.location.hostname.includes('localhost') || window.location.hostname.includes('127.0.0.1')
+    ? `ws://${window.location.hostname}:8000`
+    : 'wss://classguard-backend.onrender.com'
+)
+
+const AI_BASE = 'https://classguard-ai.onrender.com'
 
 function getToken(): string | null {
   return localStorage.getItem('token')
@@ -18,10 +26,6 @@ async function request(path: string, options: RequestInit = {}) {
 
   const res = await fetch(`${API_BASE}${path}`, { ...options, headers })
   if (!res.ok) {
-    if (res.status === 401 && !path.startsWith('/api/auth/')) {
-      localStorage.removeItem('token')
-      window.location.href = '/'
-    }
     const err = await res.json().catch(() => ({ detail: res.statusText }))
     throw new Error(err.detail || 'Request failed')
   }
@@ -31,13 +35,6 @@ async function request(path: string, options: RequestInit = {}) {
 export const api = {
   login(email: string, password: string) {
     return request('/api/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ email, password }),
-    })
-  },
-
-  register(email: string, password: string) {
-    return request('/api/auth/register', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     })
@@ -89,9 +86,5 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ request_id: requestId, action }),
     })
-  },
-
-  getStudentHistory(studentId: number) {
-    return request(`/api/students/${studentId}/history`)
   },
 }

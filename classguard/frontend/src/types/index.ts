@@ -12,6 +12,8 @@ export interface Student {
   warning_count: number
   latest_screenshot?: string | null
   reason?: string
+  activity?: string
+  explanation?: string
   created_at: string
 }
 

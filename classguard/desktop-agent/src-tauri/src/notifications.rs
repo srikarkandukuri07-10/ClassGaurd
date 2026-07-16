@@ -6,10 +6,10 @@ pub fn init() -> bool {
 
 pub fn send_warning(level: u32) {
     let (summary, body) = match level {
-        1 => ("ClassGuard: First Warning", "You appear to be off-task."),
-        2 => ("ClassGuard: Second Warning", "Second warning. Please return to class activities."),
-        3 => ("ClassGuard: Final Warning", "Final warning. Faculty has been notified."),
-        _ => return,
+        1 => ("ClassGuard: Warning", "You appear to be off-task. Please return to your studies."),
+        2 => ("ClassGuard: Warning", "Second warning. Please return to class activities."),
+        3 => ("ClassGuard: Warning", "Final warning. Faculty has been notified."),
+        _ => ("ClassGuard: Warning", "Final warning. Faculty has been notified."),
     };
     let _ = Notification::new()
         .summary(summary)

@@ -42,7 +42,9 @@ fn start_background_threads(
     device_token: String,
     server_url: String,
 ) {
-    let mon_active = app_handle.state::<AppState>().monitoring_active.clone();
+    let state = app_handle.state::<AppState>();
+    let mon_active = state.monitoring_active.clone();
+    let capture_interval = state.capture_interval.clone();
     let running = Arc::new(AtomicBool::new(true));
 
     let (http_scheme, ws_scheme) = if server_url.contains("localhost") || server_url.contains("127.0.0.1") {
@@ -66,9 +68,11 @@ fn start_background_threads(
     let su_cap = server_url;
     let hu_ws = http_url.clone();
     let wu_ws = ws_url;
+    let cap_int_ws = capture_interval.clone();
+    let cap_int_cap = capture_interval;
 
     thread::spawn(move || {
-        crate::ws_client::run_forever(&wu_ws, &hu_ws, &dt_ws, &a1, &r1, &m1);
+        crate::ws_client::run_forever(&wu_ws, &hu_ws, &dt_ws, &a1, &r1, &m1, &cap_int_ws);
     });
 
     thread::spawn(move || {
@@ -92,7 +96,7 @@ fn start_background_threads(
     });
 
     thread::spawn(move || {
-        crate::screen_capture::run_forever(&su_cap, &dt_cap, &a2, &r3, &mon_active);
+        crate::screen_capture::run_forever(&su_cap, &dt_cap, &a2, &r3, &mon_active, &cap_int_cap);
     });
 }
 

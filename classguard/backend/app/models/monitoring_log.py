@@ -14,6 +14,8 @@ class MonitoringLog(Base):
     reason = Column(String(500), nullable=True)
     window_title = Column(String(500), nullable=True)
     screenshot_path = Column(String(500), nullable=True)
+    activity = Column(String(500), nullable=True)
+    explanation = Column(String(1000), nullable=True)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
     student = relationship("Student", back_populates="monitoring_logs")

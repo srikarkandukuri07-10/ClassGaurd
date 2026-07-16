@@ -30,7 +30,7 @@ async def start_monitoring(
         db.add(session)
     await db.commit()
 
-    await manager.broadcast_agents("monitoring_started", {})
+    await manager.broadcast_agents("monitoring_started", {"interval_seconds": 1})
     return {"message": "Monitoring started"}
 
 

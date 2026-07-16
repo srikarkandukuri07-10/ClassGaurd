@@ -11,4 +11,5 @@ pub struct AppState {
     pub server_url: Arc<Mutex<String>>,
     pub monitoring_active: Arc<AtomicBool>,
     pub running: Arc<AtomicBool>,
+    pub capture_interval: Arc<std::sync::atomic::AtomicU32>,
 }

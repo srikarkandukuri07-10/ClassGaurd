@@ -30,17 +30,18 @@ pub fn run_forever(
     _app_handle: &AppHandle,
     running: &Arc<AtomicBool>,
     monitoring_active: &Arc<AtomicBool>,
+    capture_interval: &Arc<std::sync::atomic::AtomicU32>,
 ) {
     // Wait for ws_client to establish its connection first
     thread::sleep(Duration::from_secs(5));
 
     let scheme = if server_url.contains("localhost") || server_url.contains("127.0.0.1") { "http" } else { "https" };
     let classify_url = format!("{}://{}/api/ai/classify", scheme, server_url);
-    let result_url   = format!("{}://{}/api/ai/result", scheme, server_url);
     let dt = device_token.to_string();
 
     let r  = running.clone();
     let ma = monitoring_active.clone();
+    let cap_int = capture_interval.clone();
 
     thread::spawn(move || {
         let client = reqwest::blocking::Client::builder()
@@ -57,38 +58,39 @@ pub fn run_forever(
             let title      = get_active_window_title();
             let screenshot = capture_screen_base64();
 
-            if title.is_empty() {
-                thread::sleep(Duration::from_secs(5));
+            if screenshot.is_some() {
+                println!("[DEBUG] Screenshot captured successfully");
+            } else {
+                println!("[DEBUG] Screenshot capture failed or skipped");
+            }
+
+            if title.is_empty() && screenshot.is_none() {
+                let interval_sec = cap_int.load(Ordering::SeqCst) as u64;
+                thread::sleep(Duration::from_secs(interval_sec));
                 continue;
             }
 
-            // Step 1 — classify via backend (Gemini Vision or keyword fallback)
-            let classify_body = serde_json::json!({
+            let frame_body = serde_json::json!({
                 "device_id":    dt,
                 "window_title": title,
                 "image":        screenshot,
             });
 
-            if let Ok(resp) = client.post(&classify_url).json(&classify_body).send() {
-                if let Ok(result) = resp.json::<serde_json::Value>() {
-                    let status     = result["status"].as_str().unwrap_or("studying").to_string();
-                    let reason     = result["reason"].as_str().unwrap_or("").to_string();
-                    let confidence = result["confidence"].as_f64().unwrap_or(0.8);
-
-                    // Step 2 — push result back so backend fires warnings + notifications
-                    let result_body = serde_json::json!({
-                        "device_id":    dt,
-                        "status":       status,
-                        "reason":       reason,
-                        "window_title": title,
-                        "screenshot":   screenshot,
-                        "confidence":   confidence,
-                    });
-                    let _ = client.post(&result_url).json(&result_body).send();
+            match client.post(&classify_url).json(&frame_body).send() {
+                Ok(resp) => {
+                    if resp.status().is_success() {
+                        println!("[DEBUG] Screen frame uploaded successfully for window: '{}'", title);
+                    } else {
+                        println!("[DEBUG] Screen frame upload returned status: {}", resp.status());
+                    }
+                }
+                Err(e) => {
+                    println!("[DEBUG] Failed to upload screen frame: {}", e);
                 }
             }
 
-            thread::sleep(Duration::from_secs(10));
+            let interval_sec = cap_int.load(Ordering::SeqCst) as u64;
+            thread::sleep(Duration::from_secs(interval_sec));
         }
     });
 }

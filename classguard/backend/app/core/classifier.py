@@ -66,34 +66,83 @@ class ScreenClassifier:
         title_lower = (window_title or "").lower()
         all_tabs_lower = [t.lower() for t in (browser_tabs or [])]
 
-        print(f"[Classifier] window='{window_title}' gemini_key={'SET' if api_key else 'NOT SET'}")
+        print(f"\n--- [Classifier Start] Window: '{window_title}' ---")
+        print(f"[Classifier Log] Gemini API Key present: {bool(api_key)}")
 
-        # 1. Check off-task FIRST (highest priority) — so YouTube/Netflix are NEVER misclassified as studying
-        if self._is_off_task_activity(title_lower, all_tabs_lower):
-            reason = window_title or "Off-task activity"
-            print(f"[Classifier] → off-task (keyword match): {reason}")
-            return {"status": "off-task", "reason": reason, "confidence": 0.95}
-
-        if self._is_suspicious_activity(title_lower, all_tabs_lower):
-            reason = f"Suspicious: {window_title}"
-            print(f"[Classifier] → suspicious: {reason}")
-            return {"status": "suspicious", "reason": reason, "confidence": 0.85}
-
-        # 2. Try Gemini Vision for ambiguous cases (e.g. YouTube with academic title)
+        # 1. Try Gemini Vision if image and key are present
         if image_b64 and api_key:
+            print("[Classifier Log] Attempting Gemini Vision analysis...")
             gemini_result = await self._classify_image_with_gemini(image_b64, window_title, api_key)
             if gemini_result:
-                print(f"[Classifier] → Gemini says: {gemini_result['status']}")
+                print(f"[Classifier Log] Gemini Vision successful: {gemini_result}")
                 return gemini_result
+            else:
+                print("[Classifier Log] Gemini Vision failed or returned null. Falling back to heuristics...")
+        else:
+            if not api_key:
+                print("[Classifier Log] Gemini API Key is missing. Using heuristics fallback...")
+            if not image_b64:
+                print("[Classifier Log] No screenshot image provided. Using heuristics fallback...")
 
-        # 3. Studying keyword fallback
+        # 2. Heuristics fallback
+        print("[Classifier Log] Running Heuristics Classifier...")
+        
+        # Check off-task keywords first
+        if self._is_off_task_activity(title_lower, all_tabs_lower):
+            # Special case: check if YouTube has educational keywords
+            if "youtube" in title_lower and any(pat in title_lower for pat in ["lecture", "tutorial", "course", "lesson", "dsa", "dbms", "os", "programming", "coding", "learn"]):
+                result = {
+                    "status": "studying",
+                    "confidence": 0.85,
+                    "activity": "Watching Educational YouTube Video",
+                    "reason": "YouTube title indicates study/lecture content.",
+                    "explanation": f"The student is watching a study-related video on YouTube: '{window_title}'."
+                }
+            else:
+                result = {
+                    "status": "off-task",
+                    "confidence": 0.95,
+                    "activity": f"Viewing Off-Task App/Website: '{window_title}'",
+                    "reason": "Non-educational website/app keyword match.",
+                    "explanation": f"Active window title '{window_title}' matches off-task keywords."
+                }
+            print(f"[Classifier Log] Heuristics matched off-task: {result}")
+            return result
+
+        # Check suspicious keywords
+        if self._is_suspicious_activity(title_lower, all_tabs_lower):
+            result = {
+                "status": "suspicious",
+                "confidence": 0.85,
+                "activity": f"Using Suspicious Tool: '{window_title}'",
+                "reason": "Suspicious application/window keyword match.",
+                "explanation": f"The student is accessing process management or proxy tools: '{window_title}'."
+            }
+            print(f"[Classifier Log] Heuristics matched suspicious: {result}")
+            return result
+
+        # Check studying keywords
         if self._is_studying_activity(title_lower, all_tabs_lower):
-            reason = window_title or "Studying"
-            print(f"[Classifier] → studying (keyword match): {reason}")
-            return {"status": "studying", "reason": reason, "confidence": 0.85}
+            result = {
+                "status": "studying",
+                "confidence": 0.90,
+                "activity": f"Academic/Coding Activity: '{window_title}'",
+                "reason": "Educational tool or website keyword match.",
+                "explanation": f"The student is active in a study-related window: '{window_title}'."
+            }
+            print(f"[Classifier Log] Heuristics matched studying: {result}")
+            return result
 
-        print(f"[Classifier] → studying (default)")
-        return {"status": "studying", "reason": "No off-task indicators found", "confidence": 0.5}
+        # Default fallback
+        result = {
+            "status": "studying",
+            "confidence": 0.50,
+            "activity": f"Active in: '{window_title}'",
+            "reason": "No off-task or suspicious indicators found.",
+            "explanation": f"No clear category matched for window '{window_title}'. Defaulting to studying."
+        }
+        print(f"[Classifier Log] Heuristics default response: {result}")
+        return result
 
     def _is_studying_activity(self, title: str, tabs: list[str]) -> bool:
         texts = [title] + tabs
@@ -132,17 +181,23 @@ class ScreenClassifier:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
 
         prompt = (
-            "Analyze this student's desktop screenshot. Classify their activity into one of these categories:\n"
-            "- studying (coding in IDE, taking notes, reading textbook, reading research papers, watching academic lectures/tutorials, etc.)\n"
-            "- suspicious (VPN, proxy, private/incognito browsing, process management/hacking tools, anti-monitoring tools, etc.)\n"
-            "- off-task (games, streaming movies, chatting/messaging apps, social media scrolling, entertainment/gaming videos, e-commerce shopping, etc.)\n\n"
-            "Your output must be a valid, parseable JSON object in this exact format:\n"
+            "You are an intelligent classroom supervisor AI. Your task is to analyze the student's desktop screenshot and the active window title to classify their current activity.\n\n"
+            "You must classify the activity into one of these three categories:\n"
+            "1. STUDYING: Academic work, coding in IDEs (VS Code, PyCharm, IntelliJ, etc.), taking notes, reading textbooks/PDFs/research papers, watching educational/academic YouTube videos (e.g., lectures, tutorials, courses), using LMS platforms (Moodle, Canvas, Blackboard), or visiting academic websites.\n"
+            "2. SUSPICIOUS: Random web browsing, unknown websites, excessive tab switching, use of VPNs/proxies/incognito tabs, process managers, or websites that cannot confidently be classified.\n"
+            "3. OFF_TASK: Social media (Instagram, Facebook, Twitter/X, Reddit, Snapchat, Discord, WhatsApp Web), video streaming (Netflix, Prime Video, Disney+, entertainment/non-educational YouTube videos/shorts/reels), gaming, shopping, entertainment, or any other non-academic activities.\n\n"
+            "Visual Guidelines:\n"
+            "- Analyze the visual content of the screenshot. Look at the open windows, active tab, and browser address bar if visible.\n"
+            "- If a website is open, look at the domain name in the address bar.\n"
+            "- A platform like YouTube is STUDYING if a lecture/tutorial is clearly visible, but OFF_TASK if a music video, movie clip, shorts/reels, or general entertainment is active.\n\n"
+            "Your output must be a valid, parseable JSON object in this exact format (do not include any markdown formatting, backticks, or text outside the JSON):\n"
             "{\n"
-            "  \"status\": \"studying\" | \"suspicious\" | \"off-task\",\n"
-            "  \"reason\": \"A short description of what they are doing (e.g. Browsing Instagram, Watching YouTube, Coding in VS Code)\",\n"
-            "  \"confidence\": 0.0 to 1.0\n"
-            "}\n"
-            "Do not include any markdown, backticks, comments, or extra text. Output ONLY the raw JSON."
+            "  \"status\": \"STUDYING\" | \"SUSPICIOUS\" | \"OFF_TASK\",\n"
+            "  \"confidence\": 0.0 to 1.0,\n"
+            "  \"activity\": \"A short, specific description of the activity (e.g., 'Browsing Instagram Reels', 'Watching YouTube Algorithms Lecture', 'Coding in VS Code')\",\n"
+            "  \"reason\": \"A concise reason for this classification (e.g., 'Social media website detected on screen.')\",\n"
+            "  \"explanation\": \"A detailed explanation of what the student is doing on screen and whether it relates to study.\"\n"
+            "}"
         )
         if window_title:
             prompt += f"\n\nActive Window Title reported by system: {window_title}"
@@ -166,19 +221,33 @@ class ScreenClassifier:
             }
         }
 
+        print(f"[Gemini Log] Request Payload prompt size: {len(prompt)} characters")
         try:
             async with httpx.AsyncClient(timeout=15.0) as client:
                 resp = await client.post(url, json=payload)
+                print(f"[Gemini Log] Response Status Code: {resp.status_code}")
                 if resp.status_code == 200:
                     resp_json = resp.json()
                     text = resp_json["candidates"][0]["content"]["parts"][0]["text"]
+                    print(f"[Gemini Log] Raw response text: {text}")
                     data = json.loads(text.strip())
-                    if "status" in data and "reason" in data:
-                        return {
-                            "status": data["status"],
-                            "reason": data["reason"],
-                            "confidence": float(data.get("confidence", 0.95))
-                        }
+                    
+                    status_raw = data.get("status", "studying").upper()
+                    status_normalized = "studying"
+                    if status_raw == "OFF_TASK":
+                        status_normalized = "off-task"
+                    elif status_raw == "SUSPICIOUS":
+                        status_normalized = "suspicious"
+
+                    return {
+                        "status": status_normalized,
+                        "confidence": float(data.get("confidence", 0.95)),
+                        "activity": data.get("activity", "Active activity"),
+                        "reason": data.get("reason", window_title or "Observation"),
+                        "explanation": data.get("explanation", "")
+                    }
+                else:
+                    print(f"[Gemini Log] Failed API call. Response content: {resp.text}")
         except Exception as e:
-            print("Gemini Vision API call failed:", e)
+            print("[Gemini Log] Exception during API call:", e)
         return None

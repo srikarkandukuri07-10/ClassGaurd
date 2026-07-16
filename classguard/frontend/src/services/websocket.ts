@@ -1,5 +1,3 @@
-import { API_BASE } from './api'
-
 type Handler = (data: any) => void
 
 export class WsClient {
@@ -7,9 +5,12 @@ export class WsClient {
   private handlers = new Map<string, Handler[]>()
 
   connect(token: string) {
-    const wsProto = API_BASE.startsWith('https') ? 'wss' : 'ws'
-    const wsHost = API_BASE.replace(/^https?:\/\//, '')
-    this.ws = new WebSocket(`${wsProto}://${wsHost}/ws/faculty?token=${token}`)
+    const wsUrl = (import.meta as any).env.VITE_WS_URL || (
+      window.location.hostname.includes('localhost') || window.location.hostname.includes('127.0.0.1')
+        ? `ws://${window.location.hostname}:8000`
+        : `wss://classguard-backend.onrender.com`
+    )
+    this.ws = new WebSocket(`${wsUrl}/ws/faculty?token=${token}`)
 
     this.ws.onmessage = (event) => {
       try {

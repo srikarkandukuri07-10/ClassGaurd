@@ -14,6 +14,8 @@ class AIClassificationResult(BaseModel):
     window_title: Optional[str] = None
     screenshot: Optional[str] = None
     confidence: Optional[float] = None
+    activity: Optional[str] = None
+    explanation: Optional[str] = None
 
 
 class HeartbeatPayload(BaseModel):
