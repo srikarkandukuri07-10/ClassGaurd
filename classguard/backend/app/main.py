@@ -121,3 +121,74 @@ app.include_router(ws_router)
 @app.get("/api/health")
 async def health():
     return {"status": "ok"}
+
+
+@app.get("/api/debug-data")
+async def debug_data():
+    from app.models.student import Student
+    from app.models.device import Device
+    from app.models.warning import Warning as WarningModel
+    from app.models.monitoring_log import MonitoringLog
+    try:
+        async with async_session() as db:
+            s_res = await db.execute(select(Student))
+            students = s_res.scalars().all()
+            
+            d_res = await db.execute(select(Device))
+            devices = d_res.scalars().all()
+            
+            w_res = await db.execute(select(WarningModel))
+            warnings = w_res.scalars().all()
+            
+            l_res = await db.execute(select(MonitoringLog).order_by(MonitoringLog.created_at.desc()).limit(10))
+            logs = l_res.scalars().all()
+            
+            return {
+                "students": [
+                    {
+                        "id": s.id,
+                        "name": s.name,
+                        "unique_code": s.unique_code,
+                        "monitoring_enabled": s.monitoring_enabled,
+                        "monitoring_paused": s.monitoring_paused,
+                        "current_status": s.current_status,
+                        "warning_count": s.warning_count,
+                    }
+                    for s in students
+                ],
+                "devices": [
+                    {
+                        "id": d.id,
+                        "student_id": d.student_id,
+                        "device_token": d.device_token,
+                        "status": d.status,
+                        "last_seen": str(d.last_seen),
+                    }
+                    for d in devices
+                ],
+                "warnings": [
+                    {
+                        "id": w.id,
+                        "student_id": w.student_id,
+                        "level": w.level,
+                        "message": w.message,
+                        "created_at": str(w.created_at),
+                    }
+                    for w in warnings
+                ],
+                "logs": [
+                    {
+                        "id": l.id,
+                        "student_id": l.student_id,
+                        "status": l.status,
+                        "activity": l.activity,
+                        "reason": l.reason,
+                        "window_title": l.window_title,
+                        "created_at": str(l.created_at),
+                    }
+                    for l in logs
+                ]
+            }
+    except Exception as e:
+        import traceback
+        return {"error": str(e), "traceback": traceback.format_exc()}
