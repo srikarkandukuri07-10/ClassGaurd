@@ -67,13 +67,35 @@ async def lifespan(app: FastAPI):
         result = await db.execute(select(Faculty).where(Faculty.email == "kandukurisrikar10@gmail.com"))
         user = result.scalar_one_or_none()
         if not user:
-            admin_user = Faculty(
+            new_admin = Faculty(
                 name="Srikar Kandukuri",
                 email="kandukurisrikar10@gmail.com",
                 hashed_password=hash_password("K.Srikar@10"),
             )
-            db.add(admin_user)
+            db.add(new_admin)
             await db.commit()
+            print("[Lifespan] Auto-seeded faculty administrator.")
+            
+    # Auto-seed a test student if students table is empty
+    from app.models.student import Student
+    async with async_session() as db:
+        try:
+            res_stu = await db.execute(select(Student))
+            has_students = res_stu.scalars().first() is not None
+            if not has_students:
+                test_student = Student(
+                    name="Test Student",
+                    section="S01",
+                    unique_code="TEST1234",
+                    monitoring_enabled=True,
+                    current_status="studying",
+                    warning_count=0
+                )
+                db.add(test_student)
+                await db.commit()
+                print("[Lifespan] Auto-seeded test student with code TEST1234.")
+        except Exception as e:
+            print(f"[Lifespan Error] Failed to seed test student: {e}")
 
     task = asyncio.create_task(check_heartbeats())
     yield
