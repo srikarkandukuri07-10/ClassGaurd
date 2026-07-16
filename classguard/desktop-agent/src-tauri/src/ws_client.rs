@@ -23,9 +23,10 @@ pub fn run_forever(
 
     thread::spawn(move || {
         while r.load(Ordering::SeqCst) {
+            crate::logger::log(&format!("Connecting to WebSocket: {}", wu));
             match connect(&wu) {
                 Ok((mut socket, _)) => {
-                    println!("[WS] Connected");
+                    crate::logger::log("WebSocket connection established successfully.");
 
                     let _ = app.emit("connection_state", serde_json::json!({ "connected": true }));
 
@@ -40,25 +41,32 @@ pub fn run_forever(
                                     let event = msg["event"].as_str().unwrap_or("");
                                     let data = msg.get("data");
 
+                                    crate::logger::log(&format!("WS Event Received: '{}'", event));
+
                                     match event {
                                         "monitoring_started" => {
                                             ma.store(true, Ordering::SeqCst);
                                             if let Some(d) = data {
                                                 if let Some(sec) = d.get("interval_seconds").and_then(|v| v.as_u64()) {
                                                     cap_int.store(sec as u32, Ordering::SeqCst);
+                                                    crate::logger::log(&format!("Monitoring active. Capture interval updated to: {}s", sec));
                                                 }
+                                            } else {
+                                                crate::logger::log("Monitoring active. Interval: default");
                                             }
                                             let _ = app.emit("monitoring_state", serde_json::json!({ "active": true }));
                                             let _ = app.emit("monitoring_paused", serde_json::json!({ "paused": false, "reason": "" }));
                                         }
                                         "monitoring_stopped" => {
                                             ma.store(false, Ordering::SeqCst);
+                                            crate::logger::log("Monitoring stopped by faculty command.");
                                             let _ = app.emit("monitoring_state", serde_json::json!({ "active": false }));
                                             let _ = app.emit("monitoring_paused", serde_json::json!({ "paused": false, "reason": "" }));
                                         }
                                         "monitoring_paused" => {
                                             ma.store(false, Ordering::SeqCst);
                                             let reason = data.and_then(|d| d.get("reason")).and_then(|v| v.as_str()).unwrap_or("");
+                                            crate::logger::log(&format!("Monitoring paused by faculty. Reason: '{}'", reason));
                                             let _ = app.emit("monitoring_paused", serde_json::json!({ "paused": true, "reason": reason }));
                                             let _ = crate::notifications::send_monitoring_paused(reason);
                                         }
@@ -66,10 +74,14 @@ pub fn run_forever(
                                             if let Some(d) = data {
                                                 let level = d.get("level").and_then(|v| v.as_u64()).unwrap_or(1);
                                                 let message = d.get("message").and_then(|v| v.as_str()).unwrap_or("");
+                                                let reason = d.get("reason").and_then(|v| v.as_str()).unwrap_or("");
+                                                
+                                                crate::logger::log(&format!("🚨 WARNING TRIGGERED (Level {}): '{}' | Reason: '{}'", level, message, reason));
+                                                
                                                 let _ = app.emit("warning", serde_json::json!({
                                                     "level": level,
                                                     "message": message,
-                                                    "reason": d.get("reason").and_then(|v| v.as_str()).unwrap_or(""),
+                                                    "reason": reason,
                                                 }));
                                                 let _ = crate::notifications::send_warning(level as u32);
                                             }
@@ -79,11 +91,11 @@ pub fn run_forever(
                                 }
                             }
                             Ok(Message::Close(_)) => {
-                                println!("[WS] Server closed connection");
+                                crate::logger::log("WebSocket connection closed by server.");
                                 break;
                             }
-                            Err(_e) => {
-                                eprintln!("[WS] Read error");
+                            Err(e) => {
+                                crate::logger::log(&format!("WebSocket read error: {}", e));
                                 break;
                             }
                             _ => {}
@@ -91,7 +103,7 @@ pub fn run_forever(
                     }
                 }
                 Err(e) => {
-                    eprintln!("[WS] Connection failed: {}", e);
+                    crate::logger::log(&format!("WebSocket connection failed: {}. Retrying in 5 seconds...", e));
                     thread::sleep(Duration::from_secs(5));
                 }
             }

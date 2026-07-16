@@ -10,6 +10,7 @@ mod commands;
 mod notifications;
 mod screen_capture;
 mod ws_client;
+mod logger;
 
 use classguard_agent_lib::AppState;
 

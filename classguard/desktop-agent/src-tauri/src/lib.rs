@@ -5,6 +5,7 @@ pub mod commands;
 pub mod notifications;
 pub mod screen_capture;
 pub mod ws_client;
+pub mod logger;
 
 pub struct AppState {
     pub device_token: Arc<Mutex<Option<String>>>,

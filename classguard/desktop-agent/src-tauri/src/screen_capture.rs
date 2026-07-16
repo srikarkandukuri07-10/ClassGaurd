@@ -59,16 +59,19 @@ pub fn run_forever(
             let screenshot = capture_screen_base64();
 
             if screenshot.is_some() {
-                println!("[DEBUG] Screenshot captured successfully");
+                crate::logger::log(&format!("[Capture] Screen captured successfully. Size: ~{} bytes", screenshot.as_ref().unwrap().len()));
             } else {
-                println!("[DEBUG] Screenshot capture failed or skipped");
+                crate::logger::log("[Capture] Screen capture failed or returned empty.");
             }
 
             if title.is_empty() && screenshot.is_none() {
+                crate::logger::log("[Capture] Empty window title and no screenshot. Skipping frame upload.");
                 let interval_sec = cap_int.load(Ordering::SeqCst) as u64;
                 thread::sleep(Duration::from_secs(interval_sec));
                 continue;
             }
+
+            crate::logger::log(&format!("[Capture] Active window title: '{}'", title));
 
             let frame_body = serde_json::json!({
                 "device_id":    dt,
@@ -76,16 +79,17 @@ pub fn run_forever(
                 "image":        screenshot,
             });
 
+            crate::logger::log(&format!("[Capture] Uploading frame to: {} ...", classify_url));
             match client.post(&classify_url).json(&frame_body).send() {
                 Ok(resp) => {
                     if resp.status().is_success() {
-                        println!("[DEBUG] Screen frame uploaded successfully for window: '{}'", title);
+                        crate::logger::log(&format!("[Capture] Screen frame uploaded successfully for window: '{}'", title));
                     } else {
-                        println!("[DEBUG] Screen frame upload returned status: {}", resp.status());
+                        crate::logger::log(&format!("[Capture] Screen frame upload returned status: {}", resp.status()));
                     }
                 }
                 Err(e) => {
-                    println!("[DEBUG] Failed to upload screen frame: {}", e);
+                    crate::logger::log(&format!("[Capture] Failed to upload screen frame: {}", e));
                 }
             }
 
