@@ -14,6 +14,7 @@ class Settings:
             "http://127.0.0.1:3000",
             "https://classguard.onrender.com",
             "https://classguard-backend.onrender.com",
+            "https://classguard.vercel.app",
         ]
         self.BACKEND_URL: str = "https://classguard-backend.onrender.com"
         self.AI_SERVICE_URL: str = "https://classguard-ai.onrender.com" if "classguard-ai.onrender.com" in ["https://classguard-ai.onrender.com", "http://localhost:8002"] else "http://localhost:8002"
